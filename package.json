@@ -1,9 +1,11 @@
 {
   "name": "shopify-mcp",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "MCP Server for Shopify API, enabling interaction with store data through GraphQL API",
   "main": "dist/index.js",
-  "bin": "dist/index.js",
+  "bin": {
+    "shopify-mcp": "dist/index.js"
+  },
   "type": "module",
   "scripts": {
     "build": "rimraf dist && tsc",

@@ -17,6 +17,11 @@ import { getProducts } from "./tools/getProducts.js";
 import { updateCustomer } from "./tools/updateCustomer.js";
 import { updateOrder } from "./tools/updateOrder.js";
 import { createProduct } from "./tools/createProduct.js";
+import { createMetafieldDefinition } from "./tools/createMetafieldDefinition.js";
+import { getMetafieldDefinitions } from "./tools/getMetafieldDefinitions.js";
+import { updateProductMetafields } from "./tools/updateProductMetafields.js";
+import { setMetafields } from "./tools/setMetafields.js";
+import { deleteMetafield } from "./tools/deleteMetafield.js";
 
 // Parse command line arguments
 const argv = minimist(process.argv.slice(2));
@@ -69,6 +74,11 @@ updateOrder.initialize(shopifyClient);
 getCustomerOrders.initialize(shopifyClient);
 updateCustomer.initialize(shopifyClient);
 createProduct.initialize(shopifyClient);
+createMetafieldDefinition.initialize(shopifyClient);
+getMetafieldDefinitions.initialize(shopifyClient);
+updateProductMetafields.initialize(shopifyClient);
+setMetafields.initialize(shopifyClient);
+deleteMetafield.initialize(shopifyClient);
 
 // Set up MCP server
 const server = new McpServer({
@@ -264,6 +274,66 @@ server.tool(
   },
   async (args) => {
     const result = await createProduct.execute(args);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result) }]
+    };
+  }
+);
+
+// Add the createMetafieldDefinition tool
+server.tool(
+  "create-metafield-definition",
+  createMetafieldDefinition.schema,
+  async (args) => {
+    const result = await createMetafieldDefinition.execute(args);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result) }]
+    };
+  }
+);
+
+// Add the getMetafieldDefinitions tool
+server.tool(
+  "get-metafield-definitions",
+  getMetafieldDefinitions.schema,
+  async (args) => {
+    const result = await getMetafieldDefinitions.execute(args);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result) }]
+    };
+  }
+);
+
+// Add the updateProductMetafields tool
+server.tool(
+  "update-product-metafields",
+  updateProductMetafields.schema,
+  async (args) => {
+    const result = await updateProductMetafields.execute(args);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result) }]
+    };
+  }
+);
+
+// Add the setMetafields tool
+server.tool(
+  "set-metafields",
+  setMetafields.schema,
+  async (args) => {
+    const result = await setMetafields.execute(args);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result) }]
+    };
+  }
+);
+
+// Add the deleteMetafield tool
+server.tool(
+  "delete-metafield",
+  deleteMetafield.schema,
+  async (args) => {
+    const result = await deleteMetafield.execute(args);
     return {
       content: [{ type: "text", text: JSON.stringify(result) }]
     };

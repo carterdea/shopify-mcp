@@ -13,9 +13,10 @@ MCP Server for Shopify API, enabling interaction with store data through GraphQL
 
 ## Features
 
-- **Product Management**: Search and retrieve product information
+- **Product Management**: Search, retrieve, and create product information
 - **Customer Management**: Load customer data and manage customer tags
 - **Order Management**: Advanced order querying and filtering
+- **Metafield Management**: Create definitions, manage metafields on any resource
 - **GraphQL Integration**: Direct integration with Shopify's GraphQL Admin API
 - **Comprehensive Error Handling**: Clear error messages for API and authentication issues
 
@@ -183,6 +184,56 @@ shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
      - `customAttributes` (array of objects, optional): Custom attributes for the order
      - `metafields` (array of objects, optional): Order metafields
      - `shippingAddress` (object, optional): Shipping address information
+
+### Metafield Management
+
+1. `create-metafield-definition`
+
+   - Create a metafield definition to define schema for metafields
+   - Inputs:
+     - `namespace` (string, required): Namespace for the metafield (e.g., 'custom')
+     - `key` (string, required): Key for the metafield (e.g., 'warranty_info')
+     - `name` (string, required): Human-readable name for the metafield
+     - `type` (string, required): Type of the metafield (e.g., 'single_line_text_field', 'json', 'number_integer', 'boolean', 'date', 'product_reference', etc.)
+     - `ownerType` (string, required): Resource type this applies to (PRODUCT, PRODUCT_VARIANT, CUSTOMER, ORDER, COLLECTION, etc.)
+     - `description` (string, optional): Description of the metafield
+     - `validations` (array, optional): Validation rules for the metafield
+
+2. `get-metafield-definitions`
+
+   - Retrieve metafield definitions from your store
+   - Inputs:
+     - `ownerType` (string, optional): Filter by resource type (PRODUCT, CUSTOMER, ORDER, etc.)
+     - `namespace` (string, optional): Filter by namespace
+     - `first` (number, optional, default: 50): Number of definitions to retrieve
+
+3. `update-product-metafields`
+
+   - Update or create metafields on a product
+   - Inputs:
+     - `productId` (string, required): Product ID (numeric or GID format)
+     - `metafields` (array, required): Array of metafield objects with:
+       - `namespace` (string): Namespace for the metafield
+       - `key` (string): Key for the metafield
+       - `value` (string): Value as string (even for JSON)
+       - `type` (string): Type of the metafield
+
+4. `set-metafields`
+
+   - Create or update metafields on any Shopify resource (Product, Variant, Customer, Order, Collection, etc.)
+   - Inputs:
+     - `ownerId` (string, required): Resource ID in GID format (e.g., 'gid://shopify/Product/123')
+     - `metafields` (array, required): Array of metafield objects with:
+       - `namespace` (string): Namespace for the metafield
+       - `key` (string): Key for the metafield
+       - `value` (string): Value as string (even for JSON)
+       - `type` (string): Type of the metafield
+
+5. `delete-metafield`
+
+   - Delete a metafield from Shopify
+   - Inputs:
+     - `metafieldId` (string, required): Metafield ID in GID format (e.g., 'gid://shopify/Metafield/123456')
 
 ## Debugging
 
