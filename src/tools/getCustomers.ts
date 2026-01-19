@@ -1,31 +1,28 @@
-import type { GraphQLClient } from "graphql-request";
 import { gql } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 // Input schema for getCustomers
 const GetCustomersInputSchema = z.object({
+  storeAlias: z.string().optional(),
   searchQuery: z.string().optional(),
-  limit: z.number().default(10)
+  limit: z.number().default(10),
 });
 
 type GetCustomersInput = z.infer<typeof GetCustomersInputSchema>;
-
-// Will be initialized in index.ts
-let shopifyClient: GraphQLClient;
 
 const getCustomers = {
   name: "get-customers",
   description: "Get customers or search by name/email",
   schema: GetCustomersInputSchema,
 
-  // Add initialize method to set up the GraphQL client
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   execute: async (input: GetCustomersInput) => {
     try {
-      const { searchQuery, limit } = input;
+      const { storeAlias, searchQuery, limit } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
 
       const query = gql`
         query GetCustomers($first: Int!, $query: String) {
@@ -71,10 +68,10 @@ const getCustomers = {
 
       const variables = {
         first: limit,
-        query: searchQuery
+        query: searchQuery,
       };
 
-      const data = (await shopifyClient.request(query, variables)) as {
+      const data = (await client.request(query, variables)) as {
         customers: any;
       };
 
@@ -94,11 +91,11 @@ const getCustomers = {
           defaultAddress: customer.defaultAddress,
           addresses: customer.addresses,
           amountSpent: customer.amountSpent,
-          numberOfOrders: customer.numberOfOrders
+          numberOfOrders: customer.numberOfOrders,
         };
       });
 
-      return { customers };
+      return { customers, store: storeInfo };
     } catch (error) {
       console.error("Error fetching customers:", error);
       throw new Error(
@@ -107,7 +104,7 @@ const getCustomers = {
         }`
       );
     }
-  }
+  },
 };
 
 export { getCustomers };

@@ -1,72 +1,85 @@
-import { GraphQLClient } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 const inputSchema = z.object({
-  namespace: z.string().describe("Namespace for the metafield (e.g., 'custom')"),
+  storeAlias: z.string().optional(),
+  namespace: z
+    .string()
+    .describe("Namespace for the metafield (e.g., 'custom')"),
   key: z.string().describe("Key for the metafield (e.g., 'warranty_info')"),
   name: z.string().describe("Human-readable name for the metafield"),
-  type: z.enum([
-    "boolean",
-    "color",
-    "date",
-    "date_time",
-    "dimension",
-    "json",
-    "money",
-    "multi_line_text_field",
-    "number_decimal",
-    "number_integer",
-    "rating",
-    "rich_text_field",
-    "single_line_text_field",
-    "url",
-    "volume",
-    "weight",
-    "file_reference",
-    "page_reference",
-    "product_reference",
-    "variant_reference",
-    "collection_reference",
-    "list.single_line_text_field",
-    "list.product_reference",
-    "list.variant_reference",
-    "list.collection_reference",
-    "list.file_reference",
-    "list.page_reference",
-  ]).describe("Type of the metafield"),
-  ownerType: z.enum([
-    "PRODUCT",
-    "PRODUCT_VARIANT",
-    "CUSTOMER",
-    "ORDER",
-    "COLLECTION",
-    "ARTICLE",
-    "BLOG",
-    "PAGE",
-    "SHOP",
-  ]).describe("The resource type this metafield definition applies to"),
+  type: z
+    .enum([
+      "boolean",
+      "color",
+      "date",
+      "date_time",
+      "dimension",
+      "json",
+      "money",
+      "multi_line_text_field",
+      "number_decimal",
+      "number_integer",
+      "rating",
+      "rich_text_field",
+      "single_line_text_field",
+      "url",
+      "volume",
+      "weight",
+      "file_reference",
+      "page_reference",
+      "product_reference",
+      "variant_reference",
+      "collection_reference",
+      "list.single_line_text_field",
+      "list.product_reference",
+      "list.variant_reference",
+      "list.collection_reference",
+      "list.file_reference",
+      "list.page_reference",
+    ])
+    .describe("Type of the metafield"),
+  ownerType: z
+    .enum([
+      "PRODUCT",
+      "PRODUCT_VARIANT",
+      "CUSTOMER",
+      "ORDER",
+      "COLLECTION",
+      "ARTICLE",
+      "BLOG",
+      "PAGE",
+      "SHOP",
+    ])
+    .describe("The resource type this metafield definition applies to"),
   description: z.string().optional().describe("Description of the metafield"),
-  validations: z.array(z.object({
-    name: z.string(),
-    value: z.string(),
-  })).optional().describe("Validation rules for the metafield"),
+  validations: z
+    .array(
+      z.object({
+        name: z.string(),
+        value: z.string(),
+      })
+    )
+    .optional()
+    .describe("Validation rules for the metafield"),
 });
 
 type Input = z.infer<typeof inputSchema>;
 
-let shopifyClient: GraphQLClient;
-
 export const createMetafieldDefinition = {
   name: "create-metafield-definition",
-  description: "Create a metafield definition for a specific resource type in Shopify",
+  description:
+    "Create a metafield definition for a specific resource type in Shopify",
   schema: inputSchema.shape,
 
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   async execute(input: Input) {
     try {
+      const { storeAlias, ...definitionFields } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
+
       const mutation = `
         mutation CreateMetafieldDefinition($definition: MetafieldDefinitionInput!) {
           metafieldDefinitionCreate(definition: $definition) {
@@ -95,17 +108,17 @@ export const createMetafieldDefinition = {
 
       const variables = {
         definition: {
-          namespace: input.namespace,
-          key: input.key,
-          name: input.name,
-          type: input.type,
-          ownerType: input.ownerType,
-          description: input.description,
-          validations: input.validations,
+          namespace: definitionFields.namespace,
+          key: definitionFields.key,
+          name: definitionFields.name,
+          type: definitionFields.type,
+          ownerType: definitionFields.ownerType,
+          description: definitionFields.description,
+          validations: definitionFields.validations,
         },
       };
 
-      const data = await shopifyClient.request<any>(mutation, variables);
+      const data = await client.request<any>(mutation, variables);
 
       if (data.metafieldDefinitionCreate.userErrors.length > 0) {
         const errors = data.metafieldDefinitionCreate.userErrors
@@ -116,10 +129,13 @@ export const createMetafieldDefinition = {
 
       return {
         metafieldDefinition: data.metafieldDefinitionCreate.createdDefinition,
+        store: storeInfo,
       };
     } catch (error: any) {
       console.error("Error creating metafield definition:", error);
-      throw new Error(`Failed to create metafield definition: ${error.message}`);
+      throw new Error(
+        `Failed to create metafield definition: ${error.message}`
+      );
     }
   },
 };

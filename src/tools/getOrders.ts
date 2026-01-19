@@ -1,31 +1,28 @@
-import type { GraphQLClient } from "graphql-request";
 import { gql } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 // Input schema for getOrders
 const GetOrdersInputSchema = z.object({
+  storeAlias: z.string().optional(),
   status: z.enum(["any", "open", "closed", "cancelled"]).default("any"),
-  limit: z.number().default(10)
+  limit: z.number().default(10),
 });
 
 type GetOrdersInput = z.infer<typeof GetOrdersInputSchema>;
-
-// Will be initialized in index.ts
-let shopifyClient: GraphQLClient;
 
 const getOrders = {
   name: "get-orders",
   description: "Get orders with optional filtering by status",
   schema: GetOrdersInputSchema,
 
-  // Add initialize method to set up the GraphQL client
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   execute: async (input: GetOrdersInput) => {
     try {
-      const { status, limit } = input;
+      const { storeAlias, status, limit } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
 
       // Build query filters
       let queryFilter = "";
@@ -112,10 +109,10 @@ const getOrders = {
 
       const variables = {
         first: limit,
-        query: queryFilter || undefined
+        query: queryFilter || undefined,
       };
 
-      const data = (await shopifyClient.request(query, variables)) as {
+      const data = (await client.request(query, variables)) as {
         orders: any;
       };
 
@@ -135,9 +132,9 @@ const getOrders = {
               ? {
                   id: lineItem.variant.id,
                   title: lineItem.variant.title,
-                  sku: lineItem.variant.sku
+                  sku: lineItem.variant.sku,
                 }
-              : null
+              : null,
           };
         });
 
@@ -156,17 +153,17 @@ const getOrders = {
                 id: order.customer.id,
                 firstName: order.customer.firstName,
                 lastName: order.customer.lastName,
-                email: order.customer.email
+                email: order.customer.email,
               }
             : null,
           shippingAddress: order.shippingAddress,
           lineItems,
           tags: order.tags,
-          note: order.note
+          note: order.note,
         };
       });
 
-      return { orders };
+      return { orders, store: storeInfo };
     } catch (error) {
       console.error("Error fetching orders:", error);
       throw new Error(
@@ -175,7 +172,7 @@ const getOrders = {
         }`
       );
     }
-  }
+  },
 };
 
 export { getOrders };

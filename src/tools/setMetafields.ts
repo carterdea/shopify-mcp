@@ -1,31 +1,47 @@
-import { GraphQLClient } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 const inputSchema = z.object({
-  ownerId: z.string().describe("The resource ID in GID format (e.g., 'gid://shopify/Product/123' or 'gid://shopify/Customer/456')"),
-  metafields: z.array(z.object({
-    namespace: z.string().describe("Namespace for the metafield"),
-    key: z.string().describe("Key for the metafield"),
-    value: z.string().describe("Value for the metafield (as string, even for JSON)"),
-    type: z.string().describe("Type of the metafield (e.g., 'single_line_text_field', 'json', 'number_integer')"),
-  })).describe("Array of metafields to set on the resource"),
+  storeAlias: z.string().optional(),
+  ownerId: z
+    .string()
+    .describe(
+      "The resource ID in GID format (e.g., 'gid://shopify/Product/123' or 'gid://shopify/Customer/456')"
+    ),
+  metafields: z
+    .array(
+      z.object({
+        namespace: z.string().describe("Namespace for the metafield"),
+        key: z.string().describe("Key for the metafield"),
+        value: z
+          .string()
+          .describe("Value for the metafield (as string, even for JSON)"),
+        type: z
+          .string()
+          .describe(
+            "Type of the metafield (e.g., 'single_line_text_field', 'json', 'number_integer')"
+          ),
+      })
+    )
+    .describe("Array of metafields to set on the resource"),
 });
 
 type Input = z.infer<typeof inputSchema>;
 
-let shopifyClient: GraphQLClient;
-
 export const setMetafields = {
   name: "set-metafields",
-  description: "Create or update metafields on any Shopify resource (Product, Variant, Customer, Order, Collection, etc.)",
+  description:
+    "Create or update metafields on any Shopify resource (Product, Variant, Customer, Order, Collection, etc.)",
   schema: inputSchema.shape,
 
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   async execute(input: Input) {
     try {
+      const { storeAlias, ownerId, metafields } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
+
       const mutation = `
         mutation SetMetafields($metafields: [MetafieldsSetInput!]!) {
           metafieldsSet(metafields: $metafields) {
@@ -68,8 +84,8 @@ export const setMetafields = {
         }
       `;
 
-      const metafieldsInput = input.metafields.map((metafield) => ({
-        ownerId: input.ownerId,
+      const metafieldsInput = metafields.map((metafield) => ({
+        ownerId,
         namespace: metafield.namespace,
         key: metafield.key,
         value: metafield.value,
@@ -80,7 +96,7 @@ export const setMetafields = {
         metafields: metafieldsInput,
       };
 
-      const data = await shopifyClient.request<any>(mutation, variables);
+      const data = await client.request<any>(mutation, variables);
 
       if (data.metafieldsSet.userErrors.length > 0) {
         const errors = data.metafieldsSet.userErrors
@@ -91,7 +107,8 @@ export const setMetafields = {
 
       return {
         metafields: data.metafieldsSet.metafields,
-        ownerId: input.ownerId,
+        ownerId,
+        store: storeInfo,
       };
     } catch (error: any) {
       console.error("Error setting metafields:", error);

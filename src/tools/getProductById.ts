@@ -1,30 +1,27 @@
-import type { GraphQLClient } from "graphql-request";
 import { gql } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 // Input schema for getProductById
 const GetProductByIdInputSchema = z.object({
-  productId: z.string().min(1)
+  storeAlias: z.string().optional(),
+  productId: z.string().min(1),
 });
 
 type GetProductByIdInput = z.infer<typeof GetProductByIdInputSchema>;
-
-// Will be initialized in index.ts
-let shopifyClient: GraphQLClient;
 
 const getProductById = {
   name: "get-product-by-id",
   description: "Get a specific product by ID",
   schema: GetProductByIdInputSchema,
 
-  // Add initialize method to set up the GraphQL client
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   execute: async (input: GetProductByIdInput) => {
     try {
-      const { productId } = input;
+      const { storeAlias, productId } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
 
       const query = gql`
         query GetProductById($id: ID!) {
@@ -88,10 +85,10 @@ const getProductById = {
       `;
 
       const variables = {
-        id: productId
+        id: productId,
       };
 
-      const data = (await shopifyClient.request(query, variables)) as {
+      const data = (await client.request(query, variables)) as {
         product: any;
       };
 
@@ -109,7 +106,7 @@ const getProductById = {
         price: variantEdge.node.price,
         inventoryQuantity: variantEdge.node.inventoryQuantity,
         sku: variantEdge.node.sku,
-        options: variantEdge.node.selectedOptions
+        options: variantEdge.node.selectedOptions,
       }));
 
       // Format images
@@ -118,14 +115,14 @@ const getProductById = {
         url: imageEdge.node.url,
         altText: imageEdge.node.altText,
         width: imageEdge.node.width,
-        height: imageEdge.node.height
+        height: imageEdge.node.height,
       }));
 
       // Format collections
       const collections = product.collections.edges.map(
         (collectionEdge: any) => ({
           id: collectionEdge.node.id,
-          title: collectionEdge.node.title
+          title: collectionEdge.node.title,
         })
       );
 
@@ -141,21 +138,21 @@ const getProductById = {
         priceRange: {
           minPrice: {
             amount: product.priceRangeV2.minVariantPrice.amount,
-            currencyCode: product.priceRangeV2.minVariantPrice.currencyCode
+            currencyCode: product.priceRangeV2.minVariantPrice.currencyCode,
           },
           maxPrice: {
             amount: product.priceRangeV2.maxVariantPrice.amount,
-            currencyCode: product.priceRangeV2.maxVariantPrice.currencyCode
-          }
+            currencyCode: product.priceRangeV2.maxVariantPrice.currencyCode,
+          },
         },
         images,
         variants,
         collections,
         tags: product.tags,
-        vendor: product.vendor
+        vendor: product.vendor,
       };
 
-      return { product: formattedProduct };
+      return { product: formattedProduct, store: storeInfo };
     } catch (error) {
       console.error("Error fetching product by ID:", error);
       throw new Error(
@@ -164,7 +161,7 @@ const getProductById = {
         }`
       );
     }
-  }
+  },
 };
 
 export { getProductById };

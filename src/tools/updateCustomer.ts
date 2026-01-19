@@ -1,9 +1,10 @@
-import type { GraphQLClient } from "graphql-request";
 import { gql } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 // Input schema for updating a customer
 const UpdateCustomerInputSchema = z.object({
+  storeAlias: z.string().optional(),
   id: z.string().regex(/^\d+$/, "Customer ID must be numeric"),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
@@ -21,30 +22,26 @@ const UpdateCustomerInputSchema = z.object({
         namespace: z.string().optional(),
         key: z.string().optional(),
         value: z.string(),
-        type: z.string().optional()
+        type: z.string().optional(),
       })
     )
-    .optional()
+    .optional(),
 });
 
 type UpdateCustomerInput = z.infer<typeof UpdateCustomerInputSchema>;
-
-// Will be initialized in index.ts
-let shopifyClient: GraphQLClient;
 
 const updateCustomer = {
   name: "update-customer",
   description: "Update a customer's information",
   schema: UpdateCustomerInputSchema,
 
-  // Add initialize method to set up the GraphQL client
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   execute: async (input: UpdateCustomerInput) => {
     try {
-      const { id, acceptsMarketing, ...customerFields } = input;
+      const { storeAlias, id, acceptsMarketing, ...customerFields } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
 
       // Convert numeric ID to GID format
       const customerGid = `gid://shopify/Customer/${id}`;
@@ -90,11 +87,11 @@ const updateCustomer = {
       const variables = {
         input: {
           id: customerGid,
-          ...customerFields
-        }
+          ...customerFields,
+        },
       };
 
-      const data = (await shopifyClient.request(query, variables)) as {
+      const data = (await client.request(query, variables)) as {
         customerUpdate: {
           customer: any;
           userErrors: Array<{
@@ -130,8 +127,9 @@ const updateCustomer = {
           tags: customer.tags,
           note: customer.note,
           taxExempt: customer.taxExempt,
-          metafields
-        }
+          metafields,
+        },
+        store: storeInfo,
       };
     } catch (error) {
       console.error("Error updating customer:", error);
@@ -141,7 +139,7 @@ const updateCustomer = {
         }`
       );
     }
-  }
+  },
 };
 
 export { updateCustomer };
