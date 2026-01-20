@@ -4,7 +4,7 @@
 
 MCP Server for Shopify API, enabling interaction with store data through GraphQL API. This server provides tools for managing products, customers, orders, and more.
 
-**📦 Package Name: `shopify-mcp`**  
+**📦 Package Name: `shopify-mcp`**
 **🚀 Command: `shopify-mcp` (NOT `shopify-mcp-server`)**
 
 <a href="https://glama.ai/mcp/servers/@GeLi2001/shopify-mcp">
@@ -13,6 +13,7 @@ MCP Server for Shopify API, enabling interaction with store data through GraphQL
 
 ## Features
 
+- **Multi-Store Support**: Connect to multiple Shopify stores and switch between them
 - **Product Management**: Search, retrieve, and create product information
 - **Customer Management**: Load customer data and manage customer tags
 - **Order Management**: Advanced order querying and filtering
@@ -22,7 +23,7 @@ MCP Server for Shopify API, enabling interaction with store data through GraphQL
 
 ## Prerequisites
 
-1. Node.js (version 16 or higher)
+1. Node.js (version 18 or higher)
 2. Shopify Custom App Access Token (see setup instructions below)
 
 ## Setup
@@ -46,7 +47,13 @@ To use this MCP server, you'll need to create a custom app in your Shopify store
 10. After installation, you'll see your **Admin API access token**
 11. Copy this token - you'll need it for configuration
 
-### Usage with Claude Desktop
+## Configuration
+
+### Single Store (Simple)
+
+For a single store, you can use command-line arguments or environment variables.
+
+#### Claude Desktop Configuration
 
 Add this to your `claude_desktop_config.json`:
 
@@ -67,44 +74,111 @@ Add this to your `claude_desktop_config.json`:
 }
 ```
 
-Locations for the Claude Desktop config file:
+#### Environment Variables
 
-- MacOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%/Claude/claude_desktop_config.json`
-
-### Alternative: Run Locally with Environment Variables
-
-If you prefer to use environment variables instead of command-line arguments:
-
-1. Create a `.env` file with your Shopify credentials:
-
-   ```
-   SHOPIFY_ACCESS_TOKEN=your_access_token
-   MYSHOPIFY_DOMAIN=your-store.myshopify.com
-   ```
-
-2. Run the server with npx:
-   ```
-   npx shopify-mcp
-   ```
-
-### Direct Installation (Optional)
-
-If you want to install the package globally:
+Create a `.env` file with your Shopify credentials:
 
 ```
-npm install -g shopify-mcp
+SHOPIFY_ACCESS_TOKEN=your_access_token
+MYSHOPIFY_DOMAIN=your-store.myshopify.com
 ```
 
-Then run it:
+### Multi-Store Configuration
 
-```
-shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
+For managing multiple Shopify stores, create a JSON configuration file:
+
+#### Config File Format
+
+Create a file (e.g., `shopify-stores.json`):
+
+```json
+{
+  "stores": {
+    "acme": {
+      "domain": "acme-widgets.myshopify.com",
+      "accessToken": "shpat_xxx"
+    },
+    "beta": {
+      "domain": "beta-goods.myshopify.com",
+      "accessToken": "shpat_yyy"
+    },
+    "staging": {
+      "domain": "my-store-staging.myshopify.com",
+      "accessToken": "shpat_zzz"
+    }
+  },
+  "defaultStore": "acme"
+}
 ```
 
-**⚠️ Important:** If you see errors about "SHOPIFY_ACCESS_TOKEN environment variable is required" when using command-line arguments, you might have a different package installed. Make sure you're using `shopify-mcp`, not `shopify-mcp-server`.
+#### Claude Desktop with Multi-Store
+
+```json
+{
+  "mcpServers": {
+    "shopify": {
+      "command": "npx",
+      "args": [
+        "shopify-mcp",
+        "--config",
+        "/path/to/shopify-stores.json"
+      ]
+    }
+  }
+}
+```
+
+#### Using SHOPIFY_STORES_CONFIG Environment Variable
+
+You can also provide the configuration via an environment variable:
+
+```bash
+# As a file path
+export SHOPIFY_STORES_CONFIG=/path/to/shopify-stores.json
+
+# Or as inline JSON
+export SHOPIFY_STORES_CONFIG='{"stores":{"acme":{"domain":"acme.myshopify.com","accessToken":"shpat_xxx"}}}'
+```
+
+### Configuration Priority
+
+The server loads configuration in this order (first match wins):
+
+1. `--config` CLI argument (path to JSON file)
+2. `SHOPIFY_STORES_CONFIG` environment variable (JSON string or file path)
+3. Legacy single-store env vars (`SHOPIFY_ACCESS_TOKEN` + `MYSHOPIFY_DOMAIN`)
+4. `--accessToken` + `--domain` CLI arguments
+
+### Using Multiple Stores
+
+Once configured with multiple stores, you can:
+
+1. **List available stores**: Use the `list-stores` tool to see all configured stores
+2. **Target a specific store**: Add `storeAlias` parameter to any tool call
+3. **Use the default store**: Omit `storeAlias` to use the default (or the only configured store)
+
+Example tool calls:
+
+```json
+// List all configured stores
+{ "tool": "list-stores" }
+
+// Get products from specific store
+{ "tool": "get-products", "storeAlias": "beta", "limit": 10 }
+
+// Get products from default store
+{ "tool": "get-products", "limit": 10 }
+```
+
+All tool responses include a `store` object with `alias` and `domain` to confirm which store was queried.
 
 ## Available Tools
+
+### Store Management
+
+1. `list-stores`
+   - List all configured Shopify stores
+   - Returns store aliases, domains, and which is the default
 
 ### Product Management
 
@@ -112,29 +186,35 @@ shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
 
    - Get all products or search by title
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `searchTitle` (optional string): Filter products by title
      - `limit` (number): Maximum number of products to return
 
 2. `get-product-by-id`
+
    - Get a specific product by ID
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `productId` (string): ID of the product to retrieve
 
-3. `createProduct`
-    - Create new product in store 
-    - Inputs:
-        - `title` (string): Title of the product
-        - `descriptionHtml` (string): Description of the product
-        - `vendor` (string): Vendor of the product
-        - `productType` (string): Type of the product
-        - `tags` (string): Tags of the product
-        - `status` (string): Status of the product "ACTIVE", "DRAFT", "ARCHIVED". Default "DRAFT"
+3. `create-product`
+   - Create new product in store
+   - Inputs:
+     - `storeAlias` (optional string): Target store alias
+     - `title` (string): Title of the product
+     - `descriptionHtml` (string): Description of the product
+     - `vendor` (string): Vendor of the product
+     - `productType` (string): Type of the product
+     - `tags` (string): Tags of the product
+     - `status` (string): Status of the product "ACTIVE", "DRAFT", "ARCHIVED". Default "DRAFT"
 
 ### Customer Management
+
 1. `get-customers`
 
    - Get customers or search by name/email
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `searchQuery` (optional string): Filter customers by name or email
      - `limit` (optional number, default: 10): Maximum number of customers to return
 
@@ -142,6 +222,7 @@ shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
 
    - Update a customer's information
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `id` (string, required): Shopify customer ID (numeric ID only, like "6276879810626")
      - `firstName` (string, optional): Customer's first name
      - `lastName` (string, optional): Customer's last name
@@ -155,6 +236,7 @@ shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
 3. `get-customer-orders`
    - Get orders for a specific customer
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `customerId` (string, required): Shopify customer ID (numeric ID only, like "6276879810626")
      - `limit` (optional number, default: 10): Maximum number of orders to return
 
@@ -164,6 +246,7 @@ shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
 
    - Get orders with optional filtering
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `status` (optional string): Filter by order status
      - `limit` (optional number, default: 10): Maximum number of orders to return
 
@@ -171,12 +254,14 @@ shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
 
    - Get a specific order by ID
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `orderId` (string, required): Full Shopify order ID (e.g., "gid://shopify/Order/6090960994370")
 
 3. `update-order`
 
    - Update an existing order with new information
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `id` (string, required): Shopify order ID
      - `tags` (array of strings, optional): New tags for the order
      - `email` (string, optional): Update customer email
@@ -191,6 +276,7 @@ shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
 
    - Create a metafield definition to define schema for metafields
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `namespace` (string, required): Namespace for the metafield (e.g., 'custom')
      - `key` (string, required): Key for the metafield (e.g., 'warranty_info')
      - `name` (string, required): Human-readable name for the metafield
@@ -203,6 +289,7 @@ shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
 
    - Retrieve metafield definitions from your store
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `ownerType` (string, optional): Filter by resource type (PRODUCT, CUSTOMER, ORDER, etc.)
      - `namespace` (string, optional): Filter by namespace
      - `first` (number, optional, default: 50): Number of definitions to retrieve
@@ -211,6 +298,7 @@ shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
 
    - Update or create metafields on a product
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `productId` (string, required): Product ID (numeric or GID format)
      - `metafields` (array, required): Array of metafield objects with:
        - `namespace` (string): Namespace for the metafield
@@ -222,6 +310,7 @@ shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
 
    - Create or update metafields on any Shopify resource (Product, Variant, Customer, Order, Collection, etc.)
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `ownerId` (string, required): Resource ID in GID format (e.g., 'gid://shopify/Product/123')
      - `metafields` (array, required): Array of metafield objects with:
        - `namespace` (string): Namespace for the metafield
@@ -233,7 +322,18 @@ shopify-mcp --accessToken=<YOUR_ACCESS_TOKEN> --domain=<YOUR_SHOP>.myshopify.com
 
    - Delete a metafield from Shopify
    - Inputs:
+     - `storeAlias` (optional string): Target store alias
      - `metafieldId` (string, required): Metafield ID in GID format (e.g., 'gid://shopify/Metafield/123456')
+
+## Migration from v1.x
+
+If you're upgrading from a single-store setup, your existing configuration will continue to work. The server automatically treats legacy environment variables as a store with the alias "default".
+
+To take advantage of multi-store support:
+
+1. Create a JSON config file with your stores
+2. Update your Claude Desktop config to use `--config`
+3. Optionally add `storeAlias` to your tool calls to target specific stores
 
 ## Debugging
 

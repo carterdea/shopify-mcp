@@ -1,30 +1,27 @@
-import type { GraphQLClient } from "graphql-request";
 import { gql } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 // Input schema for getOrderById
 const GetOrderByIdInputSchema = z.object({
-  orderId: z.string().min(1)
+  storeAlias: z.string().optional(),
+  orderId: z.string().min(1),
 });
 
 type GetOrderByIdInput = z.infer<typeof GetOrderByIdInputSchema>;
-
-// Will be initialized in index.ts
-let shopifyClient: GraphQLClient;
 
 const getOrderById = {
   name: "get-order-by-id",
   description: "Get a specific order by ID",
   schema: GetOrderByIdInputSchema,
 
-  // Add initialize method to set up the GraphQL client
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   execute: async (input: GetOrderByIdInput) => {
     try {
-      const { orderId } = input;
+      const { storeAlias, orderId } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
 
       const query = gql`
         query GetOrderById($id: ID!) {
@@ -112,10 +109,10 @@ const getOrderById = {
       `;
 
       const variables = {
-        id: orderId
+        id: orderId,
       };
 
-      const data = (await shopifyClient.request(query, variables)) as {
+      const data = (await client.request(query, variables)) as {
         order: any;
       };
 
@@ -138,9 +135,9 @@ const getOrderById = {
             ? {
                 id: lineItem.variant.id,
                 title: lineItem.variant.title,
-                sku: lineItem.variant.sku
+                sku: lineItem.variant.sku,
               }
-            : null
+            : null,
         };
       });
 
@@ -152,7 +149,7 @@ const getOrderById = {
           namespace: metafield.namespace,
           key: metafield.key,
           value: metafield.value,
-          type: metafield.type
+          type: metafield.type,
         };
       });
 
@@ -172,17 +169,17 @@ const getOrderById = {
               firstName: order.customer.firstName,
               lastName: order.customer.lastName,
               email: order.customer.email,
-              phone: order.customer.phone
+              phone: order.customer.phone,
             }
           : null,
         shippingAddress: order.shippingAddress,
         lineItems,
         tags: order.tags,
         note: order.note,
-        metafields
+        metafields,
       };
 
-      return { order: formattedOrder };
+      return { order: formattedOrder, store: storeInfo };
     } catch (error) {
       console.error("Error fetching order by ID:", error);
       throw new Error(
@@ -191,7 +188,7 @@ const getOrderById = {
         }`
       );
     }
-  }
+  },
 };
 
 export { getOrderById };
