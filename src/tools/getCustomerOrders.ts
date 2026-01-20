@@ -1,34 +1,28 @@
-import type { GraphQLClient } from "graphql-request";
 import { gql } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 // Input schema for getting customer orders
 const GetCustomerOrdersInputSchema = z.object({
+  storeAlias: z.string().optional(),
   customerId: z.string().regex(/^\d+$/, "Customer ID must be numeric"),
   limit: z.number().default(10),
 });
 
 type GetCustomerOrdersInput = z.infer<typeof GetCustomerOrdersInputSchema>;
 
-// Will be initialized in index.ts
-let shopifyClient: GraphQLClient;
-
 const getCustomerOrders = {
   name: "get-customer-orders",
   description: "Get orders for a specific customer",
   schema: GetCustomerOrdersInputSchema,
 
-  // Add initialize method to set up the GraphQL client
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   execute: async (input: GetCustomerOrdersInput) => {
     try {
-      const { customerId, limit } = input;
-
-      // Convert the numeric customer ID to the GID format
-      const customerGid = `gid://shopify/Customer/${customerId}`;
+      const { storeAlias, customerId, limit } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
 
       // Query to get orders for a specific customer
       const query = gql`
@@ -99,13 +93,12 @@ const getCustomerOrders = {
         }
       `;
 
-      // We use the query parameter to filter orders by customer ID
       const variables = {
         query: `customer_id:${customerId}`,
         first: limit,
       };
 
-      const data = (await shopifyClient.request(query, variables)) as {
+      const data = (await client.request(query, variables)) as {
         orders: any;
       };
 
@@ -155,7 +148,7 @@ const getCustomerOrders = {
         };
       });
 
-      return { orders };
+      return { orders, store: storeInfo };
     } catch (error) {
       console.error("Error fetching customer orders:", error);
       throw new Error(

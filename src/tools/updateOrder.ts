@@ -1,13 +1,11 @@
-import type { GraphQLClient } from "graphql-request";
 import { gql } from "graphql-request";
 import { z } from "zod";
-
-// Will be initialized in index.ts
-let shopifyClient: GraphQLClient;
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 // Input schema for updateOrder
 // Based on https://shopify.dev/docs/api/admin-graphql/latest/mutations/orderupdate
 const UpdateOrderInputSchema = z.object({
+  storeAlias: z.string().optional(),
   id: z.string().min(1),
   tags: z.array(z.string()).optional(),
   email: z.string().email().optional(),
@@ -54,15 +52,14 @@ const updateOrder = {
   description: "Update an existing order with new information",
   schema: UpdateOrderInputSchema,
 
-  // Add initialize method to set up the GraphQL client
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   execute: async (input: UpdateOrderInput) => {
     try {
       // Prepare input for GraphQL mutation
-      const { id, ...orderFields } = input;
+      const { storeAlias, id, ...orderFields } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
 
       const query = gql`
         mutation orderUpdate($input: OrderInput!) {
@@ -115,7 +112,7 @@ const updateOrder = {
         },
       };
 
-      const data = (await shopifyClient.request(query, variables)) as {
+      const data = (await client.request(query, variables)) as {
         orderUpdate: {
           order: any;
           userErrors: Array<{
@@ -150,6 +147,7 @@ const updateOrder = {
             order.metafields?.edges.map((edge: any) => edge.node) || [],
           shippingAddress: order.shippingAddress,
         },
+        store: storeInfo,
       };
     } catch (error) {
       console.error("Error updating order:", error);

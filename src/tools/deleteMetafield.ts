@@ -1,7 +1,8 @@
-import type { GraphQLClient } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 const inputSchema = z.object({
+  storeAlias: z.string().optional(),
   metafieldId: z
     .string()
     .describe(
@@ -11,19 +12,19 @@ const inputSchema = z.object({
 
 type Input = z.infer<typeof inputSchema>;
 
-let shopifyClient: GraphQLClient;
-
 export const deleteMetafield = {
   name: "delete-metafield",
   description: "Delete a metafield from Shopify",
   schema: inputSchema.shape,
 
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   async execute(input: Input) {
     try {
+      const { storeAlias, metafieldId } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
+
       const mutation = `
         mutation DeleteMetafield($input: MetafieldDeleteInput!) {
           metafieldDelete(input: $input) {
@@ -38,11 +39,11 @@ export const deleteMetafield = {
 
       const variables = {
         input: {
-          id: input.metafieldId,
+          id: metafieldId,
         },
       };
 
-      const data = await shopifyClient.request<any>(mutation, variables);
+      const data = await client.request<any>(mutation, variables);
 
       if (data.metafieldDelete.userErrors.length > 0) {
         const errors = data.metafieldDelete.userErrors
@@ -54,6 +55,7 @@ export const deleteMetafield = {
       return {
         deletedId: data.metafieldDelete.deletedId,
         success: true,
+        store: storeInfo,
       };
     } catch (error: any) {
       console.error("Error deleting metafield:", error);

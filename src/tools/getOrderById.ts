@@ -1,30 +1,27 @@
-import type { GraphQLClient } from "graphql-request";
 import { gql } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 // Input schema for getOrderById
 const GetOrderByIdInputSchema = z.object({
+  storeAlias: z.string().optional(),
   orderId: z.string().min(1),
 });
 
 type GetOrderByIdInput = z.infer<typeof GetOrderByIdInputSchema>;
-
-// Will be initialized in index.ts
-let shopifyClient: GraphQLClient;
 
 const getOrderById = {
   name: "get-order-by-id",
   description: "Get a specific order by ID",
   schema: GetOrderByIdInputSchema,
 
-  // Add initialize method to set up the GraphQL client
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   execute: async (input: GetOrderByIdInput) => {
     try {
-      const { orderId } = input;
+      const { storeAlias, orderId } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
 
       const query = gql`
         query GetOrderById($id: ID!) {
@@ -115,7 +112,7 @@ const getOrderById = {
         id: orderId,
       };
 
-      const data = (await shopifyClient.request(query, variables)) as {
+      const data = (await client.request(query, variables)) as {
         order: any;
       };
 
@@ -182,7 +179,7 @@ const getOrderById = {
         metafields,
       };
 
-      return { order: formattedOrder };
+      return { order: formattedOrder, store: storeInfo };
     } catch (error) {
       console.error("Error fetching order by ID:", error);
       throw new Error(

@@ -3,9 +3,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import dotenv from "dotenv";
-import { GraphQLClient } from "graphql-request";
-import minimist from "minimist";
 import { z } from "zod";
+import { loadConfig, parseConfigArgs } from "./config/loadConfig.js";
+// Import registry and config
+import { storeRegistry } from "./registry/StoreRegistry.js";
 import { createMetafieldDefinition } from "./tools/createMetafieldDefinition.js";
 import { createProduct } from "./tools/createProduct.js";
 import { deleteMetafield } from "./tools/deleteMetafield.js";
@@ -17,87 +18,81 @@ import { getOrderById } from "./tools/getOrderById.js";
 import { getOrders } from "./tools/getOrders.js";
 import { getProductById } from "./tools/getProductById.js";
 import { getProducts } from "./tools/getProducts.js";
+import { listStores } from "./tools/listStores.js";
 import { setMetafields } from "./tools/setMetafields.js";
 import { updateCustomer } from "./tools/updateCustomer.js";
 import { updateOrder } from "./tools/updateOrder.js";
 import { updateProductMetafields } from "./tools/updateProductMetafields.js";
 
-// Parse command line arguments
-const argv = minimist(process.argv.slice(2));
-
 // Load environment variables from .env file (if it exists)
 dotenv.config();
 
-// Define environment variables - from command line or .env file
-const SHOPIFY_ACCESS_TOKEN =
-  argv.accessToken || process.env.SHOPIFY_ACCESS_TOKEN;
-const MYSHOPIFY_DOMAIN = argv.domain || process.env.MYSHOPIFY_DOMAIN;
+// Parse command line arguments
+const configOptions = parseConfigArgs(process.argv.slice(2));
 
-// Store in process.env for backwards compatibility
-process.env.SHOPIFY_ACCESS_TOKEN = SHOPIFY_ACCESS_TOKEN;
-process.env.MYSHOPIFY_DOMAIN = MYSHOPIFY_DOMAIN;
-
-// Validate required environment variables
-if (!SHOPIFY_ACCESS_TOKEN) {
-  console.error("Error: SHOPIFY_ACCESS_TOKEN is required.");
-  console.error("Please provide it via command line argument or .env file.");
-  console.error("  Command line: --accessToken=your_token");
+// Load configuration into store registry
+try {
+  loadConfig(storeRegistry, configOptions);
+} catch (error) {
+  console.error(
+    `Error: ${error instanceof Error ? error.message : String(error)}`
+  );
   process.exit(1);
 }
 
-if (!MYSHOPIFY_DOMAIN) {
-  console.error("Error: MYSHOPIFY_DOMAIN is required.");
-  console.error("Please provide it via command line argument or .env file.");
-  console.error("  Command line: --domain=your-store.myshopify.com");
-  process.exit(1);
-}
-
-// Create Shopify GraphQL client
-const shopifyClient = new GraphQLClient(
-  `https://${MYSHOPIFY_DOMAIN}/admin/api/2023-07/graphql.json`,
-  {
-    headers: {
-      "X-Shopify-Access-Token": SHOPIFY_ACCESS_TOKEN,
-      "Content-Type": "application/json",
-    },
-  }
-);
-
-// Initialize tools with shopifyClient
-getProducts.initialize(shopifyClient);
-getProductById.initialize(shopifyClient);
-getCustomers.initialize(shopifyClient);
-getOrders.initialize(shopifyClient);
-getOrderById.initialize(shopifyClient);
-updateOrder.initialize(shopifyClient);
-getCustomerOrders.initialize(shopifyClient);
-updateCustomer.initialize(shopifyClient);
-createProduct.initialize(shopifyClient);
-createMetafieldDefinition.initialize(shopifyClient);
-getMetafieldDefinitions.initialize(shopifyClient);
-updateProductMetafields.initialize(shopifyClient);
-setMetafields.initialize(shopifyClient);
-deleteMetafield.initialize(shopifyClient);
+// Initialize tools (no client needed - they use registry directly)
+getProducts.initialize();
+getProductById.initialize();
+getCustomers.initialize();
+getOrders.initialize();
+getOrderById.initialize();
+updateOrder.initialize();
+getCustomerOrders.initialize();
+updateCustomer.initialize();
+createProduct.initialize();
+createMetafieldDefinition.initialize();
+getMetafieldDefinitions.initialize();
+updateProductMetafields.initialize();
+setMetafields.initialize();
+deleteMetafield.initialize();
+listStores.initialize();
 
 // Set up MCP server
 const server = new McpServer({
   name: "shopify",
-  version: "1.0.0",
+  version: "2.0.0",
   description:
-    "MCP Server for Shopify API, enabling interaction with store data through GraphQL API",
+    "MCP Server for Shopify API with multi-store support, enabling interaction with store data through GraphQL API",
 });
 
-// Add tools individually, using their schemas directly
+// Common storeAlias schema for all tools
+const storeAliasSchema = z
+  .string()
+  .optional()
+  .describe(
+    "Store alias to target. If omitted, uses the default store. Use list-stores to see available stores."
+  );
+
+// Add list-stores tool
+server.tool("list-stores", {}, async () => {
+  const result = await listStores.execute({});
+  return {
+    content: [{ type: "text" as const, text: JSON.stringify(result) }],
+  };
+});
+
+// Add tools with storeAlias parameter
 server.tool(
   "get-products",
   {
+    storeAlias: storeAliasSchema,
     searchTitle: z.string().optional(),
     limit: z.number().default(10),
   },
   async (args) => {
     const result = await getProducts.execute(args);
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
@@ -105,12 +100,13 @@ server.tool(
 server.tool(
   "get-product-by-id",
   {
+    storeAlias: storeAliasSchema,
     productId: z.string().min(1),
   },
   async (args) => {
     const result = await getProductById.execute(args);
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
@@ -118,13 +114,14 @@ server.tool(
 server.tool(
   "get-customers",
   {
+    storeAlias: storeAliasSchema,
     searchQuery: z.string().optional(),
     limit: z.number().default(10),
   },
   async (args) => {
     const result = await getCustomers.execute(args);
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
@@ -132,35 +129,36 @@ server.tool(
 server.tool(
   "get-orders",
   {
+    storeAlias: storeAliasSchema,
     status: z.enum(["any", "open", "closed", "cancelled"]).default("any"),
     limit: z.number().default(10),
   },
   async (args) => {
     const result = await getOrders.execute(args);
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
 
-// Add the getOrderById tool
 server.tool(
   "get-order-by-id",
   {
+    storeAlias: storeAliasSchema,
     orderId: z.string().min(1),
   },
   async (args) => {
     const result = await getOrderById.execute(args);
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
 
-// Add the updateOrder tool
 server.tool(
   "update-order",
   {
+    storeAlias: storeAliasSchema,
     id: z.string().min(1),
     tags: z.array(z.string()).optional(),
     email: z.string().email().optional(),
@@ -202,15 +200,15 @@ server.tool(
   async (args) => {
     const result = await updateOrder.execute(args);
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
 
-// Add the getCustomerOrders tool
 server.tool(
   "get-customer-orders",
   {
+    storeAlias: storeAliasSchema,
     customerId: z
       .string()
       .regex(/^\d+$/, "Customer ID must be numeric")
@@ -220,15 +218,15 @@ server.tool(
   async (args) => {
     const result = await getCustomerOrders.execute(args);
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
 
-// Add the updateCustomer tool
 server.tool(
   "update-customer",
   {
+    storeAlias: storeAliasSchema,
     id: z
       .string()
       .regex(/^\d+$/, "Customer ID must be numeric")
@@ -255,15 +253,15 @@ server.tool(
   async (args) => {
     const result = await updateCustomer.execute(args);
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
 
-// Add the createProduct tool
 server.tool(
   "create-product",
   {
+    storeAlias: storeAliasSchema,
     title: z.string().min(1),
     descriptionHtml: z.string().optional(),
     vendor: z.string().optional(),
@@ -274,62 +272,75 @@ server.tool(
   async (args) => {
     const result = await createProduct.execute(args);
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
 
-// Add the createMetafieldDefinition tool
 server.tool(
   "create-metafield-definition",
   createMetafieldDefinition.schema,
-  async (args) => {
-    const result = await createMetafieldDefinition.execute(args);
+  async (args: Record<string, unknown>) => {
+    const result = await createMetafieldDefinition.execute(
+      args as Parameters<typeof createMetafieldDefinition.execute>[0]
+    );
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
 
-// Add the getMetafieldDefinitions tool
 server.tool(
   "get-metafield-definitions",
   getMetafieldDefinitions.schema,
-  async (args) => {
-    const result = await getMetafieldDefinitions.execute(args);
+  async (args: Record<string, unknown>) => {
+    const result = await getMetafieldDefinitions.execute(
+      args as Parameters<typeof getMetafieldDefinitions.execute>[0]
+    );
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
 
-// Add the updateProductMetafields tool
 server.tool(
   "update-product-metafields",
   updateProductMetafields.schema,
-  async (args) => {
-    const result = await updateProductMetafields.execute(args);
+  async (args: Record<string, unknown>) => {
+    const result = await updateProductMetafields.execute(
+      args as Parameters<typeof updateProductMetafields.execute>[0]
+    );
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
   }
 );
 
-// Add the setMetafields tool
-server.tool("set-metafields", setMetafields.schema, async (args) => {
-  const result = await setMetafields.execute(args);
-  return {
-    content: [{ type: "text", text: JSON.stringify(result) }],
-  };
-});
+server.tool(
+  "set-metafields",
+  setMetafields.schema,
+  async (args: Record<string, unknown>) => {
+    const result = await setMetafields.execute(
+      args as Parameters<typeof setMetafields.execute>[0]
+    );
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
+    };
+  }
+);
 
-// Add the deleteMetafield tool
-server.tool("delete-metafield", deleteMetafield.schema, async (args) => {
-  const result = await deleteMetafield.execute(args);
-  return {
-    content: [{ type: "text", text: JSON.stringify(result) }],
-  };
-});
+server.tool(
+  "delete-metafield",
+  deleteMetafield.schema,
+  async (args: Record<string, unknown>) => {
+    const result = await deleteMetafield.execute(
+      args as Parameters<typeof deleteMetafield.execute>[0]
+    );
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
+    };
+  }
+);
 
 // Start the server
 const transport = new StdioServerTransport();

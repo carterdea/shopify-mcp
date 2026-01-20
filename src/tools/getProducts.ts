@@ -1,31 +1,28 @@
-import type { GraphQLClient } from "graphql-request";
 import { gql } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 // Input schema for getProducts
 const GetProductsInputSchema = z.object({
+  storeAlias: z.string().optional(),
   searchTitle: z.string().optional(),
   limit: z.number().default(10),
 });
 
 type GetProductsInput = z.infer<typeof GetProductsInputSchema>;
 
-// Will be initialized in index.ts
-let shopifyClient: GraphQLClient;
-
 const getProducts = {
   name: "get-products",
   description: "Get all products or search by title",
   schema: GetProductsInputSchema,
 
-  // Add initialize method to set up the GraphQL client
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   execute: async (input: GetProductsInput) => {
     try {
-      const { searchTitle, limit } = input;
+      const { storeAlias, searchTitle, limit } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
 
       // Create query based on whether we're searching by title or not
       const query = gql`
@@ -81,7 +78,7 @@ const getProducts = {
         query: searchTitle ? `title:*${searchTitle}*` : undefined,
       };
 
-      const data = (await shopifyClient.request(query, variables)) as {
+      const data = (await client.request(query, variables)) as {
         products: any;
       };
 
@@ -128,7 +125,7 @@ const getProducts = {
         };
       });
 
-      return { products };
+      return { products, store: storeInfo };
     } catch (error) {
       console.error("Error fetching products:", error);
       throw new Error(

@@ -1,7 +1,8 @@
-import type { GraphQLClient } from "graphql-request";
 import { z } from "zod";
+import { storeRegistry } from "../registry/StoreRegistry.js";
 
 const inputSchema = z.object({
+  storeAlias: z.string().optional(),
   namespace: z
     .string()
     .describe("Namespace for the metafield (e.g., 'custom')"),
@@ -65,20 +66,20 @@ const inputSchema = z.object({
 
 type Input = z.infer<typeof inputSchema>;
 
-let shopifyClient: GraphQLClient;
-
 export const createMetafieldDefinition = {
   name: "create-metafield-definition",
   description:
     "Create a metafield definition for a specific resource type in Shopify",
   schema: inputSchema.shape,
 
-  initialize(client: GraphQLClient) {
-    shopifyClient = client;
-  },
+  initialize() {},
 
   async execute(input: Input) {
     try {
+      const { storeAlias, ...definitionFields } = input;
+      const client = storeRegistry.getClient(storeAlias);
+      const storeInfo = storeRegistry.getStoreInfo(storeAlias);
+
       const mutation = `
         mutation CreateMetafieldDefinition($definition: MetafieldDefinitionInput!) {
           metafieldDefinitionCreate(definition: $definition) {
@@ -107,17 +108,17 @@ export const createMetafieldDefinition = {
 
       const variables = {
         definition: {
-          namespace: input.namespace,
-          key: input.key,
-          name: input.name,
-          type: input.type,
-          ownerType: input.ownerType,
-          description: input.description,
-          validations: input.validations,
+          namespace: definitionFields.namespace,
+          key: definitionFields.key,
+          name: definitionFields.name,
+          type: definitionFields.type,
+          ownerType: definitionFields.ownerType,
+          description: definitionFields.description,
+          validations: definitionFields.validations,
         },
       };
 
-      const data = await shopifyClient.request<any>(mutation, variables);
+      const data = await client.request<any>(mutation, variables);
 
       if (data.metafieldDefinitionCreate.userErrors.length > 0) {
         const errors = data.metafieldDefinitionCreate.userErrors
@@ -128,6 +129,7 @@ export const createMetafieldDefinition = {
 
       return {
         metafieldDefinition: data.metafieldDefinitionCreate.createdDefinition,
+        store: storeInfo,
       };
     } catch (error: any) {
       console.error("Error creating metafield definition:", error);
