@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from "bun:test";
 import { StoreRegistry } from "../registry/StoreRegistry.js";
 
 describe("StoreRegistry", () => {
