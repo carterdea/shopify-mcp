@@ -53,7 +53,11 @@ export function loadConfig(
   // Priority 3: Legacy env vars (single store)
   const envAccessToken = process.env.SHOPIFY_ACCESS_TOKEN;
   const envDomain = process.env.MYSHOPIFY_DOMAIN;
-  const hasEnvConfig = envAccessToken && envAccessToken !== "undefined" && envDomain && envDomain !== "undefined";
+  const hasEnvConfig =
+    envAccessToken &&
+    envAccessToken !== "undefined" &&
+    envDomain &&
+    envDomain !== "undefined";
 
   if (hasEnvConfig) {
     registry.register("default", {

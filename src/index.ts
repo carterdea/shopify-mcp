@@ -281,7 +281,9 @@ server.tool(
   "create-metafield-definition",
   createMetafieldDefinition.schema,
   async (args: Record<string, unknown>) => {
-    const result = await createMetafieldDefinition.execute(args as Parameters<typeof createMetafieldDefinition.execute>[0]);
+    const result = await createMetafieldDefinition.execute(
+      args as Parameters<typeof createMetafieldDefinition.execute>[0]
+    );
     return {
       content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
@@ -292,7 +294,9 @@ server.tool(
   "get-metafield-definitions",
   getMetafieldDefinitions.schema,
   async (args: Record<string, unknown>) => {
-    const result = await getMetafieldDefinitions.execute(args as Parameters<typeof getMetafieldDefinitions.execute>[0]);
+    const result = await getMetafieldDefinitions.execute(
+      args as Parameters<typeof getMetafieldDefinitions.execute>[0]
+    );
     return {
       content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
@@ -303,7 +307,9 @@ server.tool(
   "update-product-metafields",
   updateProductMetafields.schema,
   async (args: Record<string, unknown>) => {
-    const result = await updateProductMetafields.execute(args as Parameters<typeof updateProductMetafields.execute>[0]);
+    const result = await updateProductMetafields.execute(
+      args as Parameters<typeof updateProductMetafields.execute>[0]
+    );
     return {
       content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
@@ -314,7 +320,9 @@ server.tool(
   "set-metafields",
   setMetafields.schema,
   async (args: Record<string, unknown>) => {
-    const result = await setMetafields.execute(args as Parameters<typeof setMetafields.execute>[0]);
+    const result = await setMetafields.execute(
+      args as Parameters<typeof setMetafields.execute>[0]
+    );
     return {
       content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };
@@ -325,7 +333,9 @@ server.tool(
   "delete-metafield",
   deleteMetafield.schema,
   async (args: Record<string, unknown>) => {
-    const result = await deleteMetafield.execute(args as Parameters<typeof deleteMetafield.execute>[0]);
+    const result = await deleteMetafield.execute(
+      args as Parameters<typeof deleteMetafield.execute>[0]
+    );
     return {
       content: [{ type: "text" as const, text: JSON.stringify(result) }],
     };

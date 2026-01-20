@@ -153,9 +153,9 @@ describe("loadConfig", () => {
     });
 
     it("should throw error when only accessToken is provided", () => {
-      expect(() =>
-        loadConfig(registry, { accessToken: "shpat_xxx" })
-      ).toThrow(/Both --accessToken and --domain are required/);
+      expect(() => loadConfig(registry, { accessToken: "shpat_xxx" })).toThrow(
+        /Both --accessToken and --domain are required/
+      );
     });
 
     it("should throw error when only domain is provided", () => {
