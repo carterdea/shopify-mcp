@@ -4,7 +4,7 @@ import { z } from "zod";
 
 // Input schema for getOrderById
 const GetOrderByIdInputSchema = z.object({
-  orderId: z.string().min(1)
+  orderId: z.string().min(1),
 });
 
 type GetOrderByIdInput = z.infer<typeof GetOrderByIdInputSchema>;
@@ -112,7 +112,7 @@ const getOrderById = {
       `;
 
       const variables = {
-        id: orderId
+        id: orderId,
       };
 
       const data = (await shopifyClient.request(query, variables)) as {
@@ -138,9 +138,9 @@ const getOrderById = {
             ? {
                 id: lineItem.variant.id,
                 title: lineItem.variant.title,
-                sku: lineItem.variant.sku
+                sku: lineItem.variant.sku,
               }
-            : null
+            : null,
         };
       });
 
@@ -152,7 +152,7 @@ const getOrderById = {
           namespace: metafield.namespace,
           key: metafield.key,
           value: metafield.value,
-          type: metafield.type
+          type: metafield.type,
         };
       });
 
@@ -172,14 +172,14 @@ const getOrderById = {
               firstName: order.customer.firstName,
               lastName: order.customer.lastName,
               email: order.customer.email,
-              phone: order.customer.phone
+              phone: order.customer.phone,
             }
           : null,
         shippingAddress: order.shippingAddress,
         lineItems,
         tags: order.tags,
         note: order.note,
-        metafields
+        metafields,
       };
 
       return { order: formattedOrder };
@@ -191,7 +191,7 @@ const getOrderById = {
         }`
       );
     }
-  }
+  },
 };
 
 export { getOrderById };

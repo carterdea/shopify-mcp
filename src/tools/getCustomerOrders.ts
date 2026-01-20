@@ -5,7 +5,7 @@ import { z } from "zod";
 // Input schema for getting customer orders
 const GetCustomerOrdersInputSchema = z.object({
   customerId: z.string().regex(/^\d+$/, "Customer ID must be numeric"),
-  limit: z.number().default(10)
+  limit: z.number().default(10),
 });
 
 type GetCustomerOrdersInput = z.infer<typeof GetCustomerOrdersInputSchema>;
@@ -102,7 +102,7 @@ const getCustomerOrders = {
       // We use the query parameter to filter orders by customer ID
       const variables = {
         query: `customer_id:${customerId}`,
-        first: limit
+        first: limit,
       };
 
       const data = (await shopifyClient.request(query, variables)) as {
@@ -125,9 +125,9 @@ const getCustomerOrders = {
               ? {
                   id: lineItem.variant.id,
                   title: lineItem.variant.title,
-                  sku: lineItem.variant.sku
+                  sku: lineItem.variant.sku,
                 }
-              : null
+              : null,
           };
         });
 
@@ -146,12 +146,12 @@ const getCustomerOrders = {
                 id: order.customer.id,
                 firstName: order.customer.firstName,
                 lastName: order.customer.lastName,
-                email: order.customer.email
+                email: order.customer.email,
               }
             : null,
           lineItems,
           tags: order.tags,
-          note: order.note
+          note: order.note,
         };
       });
 
@@ -164,7 +164,7 @@ const getCustomerOrders = {
         }`
       );
     }
-  }
+  },
 };
 
 export { getCustomerOrders };

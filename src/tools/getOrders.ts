@@ -5,7 +5,7 @@ import { z } from "zod";
 // Input schema for getOrders
 const GetOrdersInputSchema = z.object({
   status: z.enum(["any", "open", "closed", "cancelled"]).default("any"),
-  limit: z.number().default(10)
+  limit: z.number().default(10),
 });
 
 type GetOrdersInput = z.infer<typeof GetOrdersInputSchema>;
@@ -112,7 +112,7 @@ const getOrders = {
 
       const variables = {
         first: limit,
-        query: queryFilter || undefined
+        query: queryFilter || undefined,
       };
 
       const data = (await shopifyClient.request(query, variables)) as {
@@ -135,9 +135,9 @@ const getOrders = {
               ? {
                   id: lineItem.variant.id,
                   title: lineItem.variant.title,
-                  sku: lineItem.variant.sku
+                  sku: lineItem.variant.sku,
                 }
-              : null
+              : null,
           };
         });
 
@@ -156,13 +156,13 @@ const getOrders = {
                 id: order.customer.id,
                 firstName: order.customer.firstName,
                 lastName: order.customer.lastName,
-                email: order.customer.email
+                email: order.customer.email,
               }
             : null,
           shippingAddress: order.shippingAddress,
           lineItems,
           tags: order.tags,
-          note: order.note
+          note: order.note,
         };
       });
 
@@ -175,7 +175,7 @@ const getOrders = {
         }`
       );
     }
-  }
+  },
 };
 
 export { getOrders };

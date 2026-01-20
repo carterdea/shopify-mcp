@@ -1,20 +1,26 @@
-import { GraphQLClient } from "graphql-request";
+import type { GraphQLClient } from "graphql-request";
 import { z } from "zod";
 
 const inputSchema = z.object({
-  ownerType: z.enum([
-    "PRODUCT",
-    "PRODUCT_VARIANT",
-    "CUSTOMER",
-    "ORDER",
-    "COLLECTION",
-    "ARTICLE",
-    "BLOG",
-    "PAGE",
-    "SHOP",
-  ]).optional().describe("Filter definitions by resource type"),
+  ownerType: z
+    .enum([
+      "PRODUCT",
+      "PRODUCT_VARIANT",
+      "CUSTOMER",
+      "ORDER",
+      "COLLECTION",
+      "ARTICLE",
+      "BLOG",
+      "PAGE",
+      "SHOP",
+    ])
+    .optional()
+    .describe("Filter definitions by resource type"),
   namespace: z.string().optional().describe("Filter by namespace"),
-  first: z.number().default(50).describe("Number of definitions to retrieve (default: 50)"),
+  first: z
+    .number()
+    .default(50)
+    .describe("Number of definitions to retrieve (default: 50)"),
 });
 
 type Input = z.infer<typeof inputSchema>;
@@ -23,7 +29,8 @@ let shopifyClient: GraphQLClient;
 
 export const getMetafieldDefinitions = {
   name: "get-metafield-definitions",
-  description: "Get metafield definitions from Shopify, optionally filtered by owner type or namespace",
+  description:
+    "Get metafield definitions from Shopify, optionally filtered by owner type or namespace",
   schema: inputSchema.shape,
 
   initialize(client: GraphQLClient) {
@@ -65,7 +72,9 @@ export const getMetafieldDefinitions = {
 
       const data = await shopifyClient.request<any>(query, variables);
 
-      const definitions = data.metafieldDefinitions.edges.map((edge: any) => edge.node);
+      const definitions = data.metafieldDefinitions.edges.map(
+        (edge: any) => edge.node
+      );
 
       return {
         metafieldDefinitions: definitions,
@@ -73,7 +82,9 @@ export const getMetafieldDefinitions = {
       };
     } catch (error: any) {
       console.error("Error fetching metafield definitions:", error);
-      throw new Error(`Failed to fetch metafield definitions: ${error.message}`);
+      throw new Error(
+        `Failed to fetch metafield definitions: ${error.message}`
+      );
     }
   },
 };

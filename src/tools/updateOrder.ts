@@ -16,7 +16,7 @@ const UpdateOrderInputSchema = z.object({
     .array(
       z.object({
         key: z.string(),
-        value: z.string()
+        value: z.string(),
       })
     )
     .optional(),
@@ -27,7 +27,7 @@ const UpdateOrderInputSchema = z.object({
         namespace: z.string().optional(),
         key: z.string().optional(),
         value: z.string(),
-        type: z.string().optional()
+        type: z.string().optional(),
       })
     )
     .optional(),
@@ -42,9 +42,9 @@ const UpdateOrderInputSchema = z.object({
       lastName: z.string().optional(),
       phone: z.string().optional(),
       province: z.string().optional(),
-      zip: z.string().optional()
+      zip: z.string().optional(),
     })
-    .optional()
+    .optional(),
 });
 
 type UpdateOrderInput = z.infer<typeof UpdateOrderInputSchema>;
@@ -111,8 +111,8 @@ const updateOrder = {
       const variables = {
         input: {
           id,
-          ...orderFields
-        }
+          ...orderFields,
+        },
       };
 
       const data = (await shopifyClient.request(query, variables)) as {
@@ -148,8 +148,8 @@ const updateOrder = {
           customAttributes: order.customAttributes,
           metafields:
             order.metafields?.edges.map((edge: any) => edge.node) || [],
-          shippingAddress: order.shippingAddress
-        }
+          shippingAddress: order.shippingAddress,
+        },
       };
     } catch (error) {
       console.error("Error updating order:", error);
@@ -159,7 +159,7 @@ const updateOrder = {
         }`
       );
     }
-  }
+  },
 };
 
 export { updateOrder };

@@ -1,4 +1,3 @@
-
 import type { GraphQLClient } from "graphql-request";
 import { gql } from "graphql-request";
 import { z } from "zod";

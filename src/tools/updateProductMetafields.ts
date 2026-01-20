@@ -1,14 +1,24 @@
-import { GraphQLClient } from "graphql-request";
+import type { GraphQLClient } from "graphql-request";
 import { z } from "zod";
 
 const inputSchema = z.object({
   productId: z.string().describe("The product ID (numeric or GID format)"),
-  metafields: z.array(z.object({
-    namespace: z.string().describe("Namespace for the metafield"),
-    key: z.string().describe("Key for the metafield"),
-    value: z.string().describe("Value for the metafield (as string, even for JSON)"),
-    type: z.string().describe("Type of the metafield (e.g., 'single_line_text_field', 'json', 'number_integer')"),
-  })).describe("Array of metafields to set on the product"),
+  metafields: z
+    .array(
+      z.object({
+        namespace: z.string().describe("Namespace for the metafield"),
+        key: z.string().describe("Key for the metafield"),
+        value: z
+          .string()
+          .describe("Value for the metafield (as string, even for JSON)"),
+        type: z
+          .string()
+          .describe(
+            "Type of the metafield (e.g., 'single_line_text_field', 'json', 'number_integer')"
+          ),
+      })
+    )
+    .describe("Array of metafields to set on the product"),
 });
 
 type Input = z.infer<typeof inputSchema>;

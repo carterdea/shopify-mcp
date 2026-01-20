@@ -21,10 +21,10 @@ const UpdateCustomerInputSchema = z.object({
         namespace: z.string().optional(),
         key: z.string().optional(),
         value: z.string(),
-        type: z.string().optional()
+        type: z.string().optional(),
       })
     )
-    .optional()
+    .optional(),
 });
 
 type UpdateCustomerInput = z.infer<typeof UpdateCustomerInputSchema>;
@@ -90,8 +90,8 @@ const updateCustomer = {
       const variables = {
         input: {
           id: customerGid,
-          ...customerFields
-        }
+          ...customerFields,
+        },
       };
 
       const data = (await shopifyClient.request(query, variables)) as {
@@ -130,8 +130,8 @@ const updateCustomer = {
           tags: customer.tags,
           note: customer.note,
           taxExempt: customer.taxExempt,
-          metafields
-        }
+          metafields,
+        },
       };
     } catch (error) {
       console.error("Error updating customer:", error);
@@ -141,7 +141,7 @@ const updateCustomer = {
         }`
       );
     }
-  }
+  },
 };
 
 export { updateCustomer };

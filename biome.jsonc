@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": ["ultracite/biome/core"],
+  "linter": {
+    "rules": {
+      "style": {
+        // Allow camelCase filenames (existing convention)
+        "useFilenamingConvention": "off"
+      },
+      "suspicious": {
+        // TODO: Remove any types incrementally
+        "noExplicitAny": "warn",
+        // Allow empty initialize() methods (MCP SDK pattern)
+        "noEmptyBlockStatements": "off"
+      },
+      "performance": {
+        // Allow namespace imports for Node.js builtins
+        "noNamespaceImport": "off",
+        // Allow inline regex in test assertions
+        "useTopLevelRegex": "off"
+      }
+    }
+  }
+}

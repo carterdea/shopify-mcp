@@ -1,14 +1,28 @@
-import { GraphQLClient } from "graphql-request";
+import type { GraphQLClient } from "graphql-request";
 import { z } from "zod";
 
 const inputSchema = z.object({
-  ownerId: z.string().describe("The resource ID in GID format (e.g., 'gid://shopify/Product/123' or 'gid://shopify/Customer/456')"),
-  metafields: z.array(z.object({
-    namespace: z.string().describe("Namespace for the metafield"),
-    key: z.string().describe("Key for the metafield"),
-    value: z.string().describe("Value for the metafield (as string, even for JSON)"),
-    type: z.string().describe("Type of the metafield (e.g., 'single_line_text_field', 'json', 'number_integer')"),
-  })).describe("Array of metafields to set on the resource"),
+  ownerId: z
+    .string()
+    .describe(
+      "The resource ID in GID format (e.g., 'gid://shopify/Product/123' or 'gid://shopify/Customer/456')"
+    ),
+  metafields: z
+    .array(
+      z.object({
+        namespace: z.string().describe("Namespace for the metafield"),
+        key: z.string().describe("Key for the metafield"),
+        value: z
+          .string()
+          .describe("Value for the metafield (as string, even for JSON)"),
+        type: z
+          .string()
+          .describe(
+            "Type of the metafield (e.g., 'single_line_text_field', 'json', 'number_integer')"
+          ),
+      })
+    )
+    .describe("Array of metafields to set on the resource"),
 });
 
 type Input = z.infer<typeof inputSchema>;
@@ -17,7 +31,8 @@ let shopifyClient: GraphQLClient;
 
 export const setMetafields = {
   name: "set-metafields",
-  description: "Create or update metafields on any Shopify resource (Product, Variant, Customer, Order, Collection, etc.)",
+  description:
+    "Create or update metafields on any Shopify resource (Product, Variant, Customer, Order, Collection, etc.)",
   schema: inputSchema.shape,
 
   initialize(client: GraphQLClient) {

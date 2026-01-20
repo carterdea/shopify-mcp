@@ -4,7 +4,7 @@ import { z } from "zod";
 
 // Input schema for getProductById
 const GetProductByIdInputSchema = z.object({
-  productId: z.string().min(1)
+  productId: z.string().min(1),
 });
 
 type GetProductByIdInput = z.infer<typeof GetProductByIdInputSchema>;
@@ -88,7 +88,7 @@ const getProductById = {
       `;
 
       const variables = {
-        id: productId
+        id: productId,
       };
 
       const data = (await shopifyClient.request(query, variables)) as {
@@ -109,7 +109,7 @@ const getProductById = {
         price: variantEdge.node.price,
         inventoryQuantity: variantEdge.node.inventoryQuantity,
         sku: variantEdge.node.sku,
-        options: variantEdge.node.selectedOptions
+        options: variantEdge.node.selectedOptions,
       }));
 
       // Format images
@@ -118,14 +118,14 @@ const getProductById = {
         url: imageEdge.node.url,
         altText: imageEdge.node.altText,
         width: imageEdge.node.width,
-        height: imageEdge.node.height
+        height: imageEdge.node.height,
       }));
 
       // Format collections
       const collections = product.collections.edges.map(
         (collectionEdge: any) => ({
           id: collectionEdge.node.id,
-          title: collectionEdge.node.title
+          title: collectionEdge.node.title,
         })
       );
 
@@ -141,18 +141,18 @@ const getProductById = {
         priceRange: {
           minPrice: {
             amount: product.priceRangeV2.minVariantPrice.amount,
-            currencyCode: product.priceRangeV2.minVariantPrice.currencyCode
+            currencyCode: product.priceRangeV2.minVariantPrice.currencyCode,
           },
           maxPrice: {
             amount: product.priceRangeV2.maxVariantPrice.amount,
-            currencyCode: product.priceRangeV2.maxVariantPrice.currencyCode
-          }
+            currencyCode: product.priceRangeV2.maxVariantPrice.currencyCode,
+          },
         },
         images,
         variants,
         collections,
         tags: product.tags,
-        vendor: product.vendor
+        vendor: product.vendor,
       };
 
       return { product: formattedProduct };
@@ -164,7 +164,7 @@ const getProductById = {
         }`
       );
     }
-  }
+  },
 };
 
 export { getProductById };

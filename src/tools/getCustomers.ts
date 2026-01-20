@@ -5,7 +5,7 @@ import { z } from "zod";
 // Input schema for getCustomers
 const GetCustomersInputSchema = z.object({
   searchQuery: z.string().optional(),
-  limit: z.number().default(10)
+  limit: z.number().default(10),
 });
 
 type GetCustomersInput = z.infer<typeof GetCustomersInputSchema>;
@@ -71,7 +71,7 @@ const getCustomers = {
 
       const variables = {
         first: limit,
-        query: searchQuery
+        query: searchQuery,
       };
 
       const data = (await shopifyClient.request(query, variables)) as {
@@ -94,7 +94,7 @@ const getCustomers = {
           defaultAddress: customer.defaultAddress,
           addresses: customer.addresses,
           amountSpent: customer.amountSpent,
-          numberOfOrders: customer.numberOfOrders
+          numberOfOrders: customer.numberOfOrders,
         };
       });
 
@@ -107,7 +107,7 @@ const getCustomers = {
         }`
       );
     }
-  }
+  },
 };
 
 export { getCustomers };

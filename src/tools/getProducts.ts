@@ -5,7 +5,7 @@ import { z } from "zod";
 // Input schema for getProducts
 const GetProductsInputSchema = z.object({
   searchTitle: z.string().optional(),
-  limit: z.number().default(10)
+  limit: z.number().default(10),
 });
 
 type GetProductsInput = z.infer<typeof GetProductsInputSchema>;
@@ -78,7 +78,7 @@ const getProducts = {
 
       const variables = {
         first: limit,
-        query: searchTitle ? `title:*${searchTitle}*` : undefined
+        query: searchTitle ? `title:*${searchTitle}*` : undefined,
       };
 
       const data = (await shopifyClient.request(query, variables)) as {
@@ -95,7 +95,7 @@ const getProducts = {
           title: variantEdge.node.title,
           price: variantEdge.node.price,
           inventoryQuantity: variantEdge.node.inventoryQuantity,
-          sku: variantEdge.node.sku
+          sku: variantEdge.node.sku,
         }));
 
         // Get first image if it exists
@@ -116,15 +116,15 @@ const getProducts = {
           priceRange: {
             minPrice: {
               amount: product.priceRangeV2.minVariantPrice.amount,
-              currencyCode: product.priceRangeV2.minVariantPrice.currencyCode
+              currencyCode: product.priceRangeV2.minVariantPrice.currencyCode,
             },
             maxPrice: {
               amount: product.priceRangeV2.maxVariantPrice.amount,
-              currencyCode: product.priceRangeV2.maxVariantPrice.currencyCode
-            }
+              currencyCode: product.priceRangeV2.maxVariantPrice.currencyCode,
+            },
           },
           imageUrl,
-          variants
+          variants,
         };
       });
 
@@ -137,7 +137,7 @@ const getProducts = {
         }`
       );
     }
-  }
+  },
 };
 
 export { getProducts };

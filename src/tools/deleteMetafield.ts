@@ -1,8 +1,12 @@
-import { GraphQLClient } from "graphql-request";
+import type { GraphQLClient } from "graphql-request";
 import { z } from "zod";
 
 const inputSchema = z.object({
-  metafieldId: z.string().describe("The metafield ID in GID format (e.g., 'gid://shopify/Metafield/123456')"),
+  metafieldId: z
+    .string()
+    .describe(
+      "The metafield ID in GID format (e.g., 'gid://shopify/Metafield/123456')"
+    ),
 });
 
 type Input = z.infer<typeof inputSchema>;
